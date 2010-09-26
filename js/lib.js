@@ -291,6 +291,11 @@ function retry(org_arguments, org_this) {
     };
 }
 
+function trim(str) {
+    if (str == null) return '';
+    return String(str).replace(/^\s+|\s+$/g, '');
+}
+
 //
 // TransURI (UTF-8): transURI.js (Ver.041211)
 //

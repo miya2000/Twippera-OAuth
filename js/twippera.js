@@ -145,10 +145,11 @@ var Twippera = {
         return 1;
     };
     Twippera.auth_requestToken = function() {
-        var ckey = $('consumer_key').value;
-        var csec = $('consumer_secret').value;
+        var ckey = trim($('consumer_key').value);
+        var csec = trim($('consumer_secret').value);
         if (!/\w/.test(ckey) || !/\w/.test(csec)) {
-            //TODO: add error mark.
+            $('auth_error_msg').textContent = 'This operation requires Consumer key/secret.(Step 2).';
+            Twippera.auth_updateStep(2);
             return;
         }
         authClient = new Twitter.Client(Twippera.clientInfo, {
@@ -161,6 +162,9 @@ var Twippera = {
             $('oauth_auth').href = authURL;
             widget.openURL(authURL);
             Twippera.auth_updateStep(4);
+        },
+        function() {
+            $('auth_error_msg').textContent = 'request token failed. Please check input values and retry.'
         });
     };
     Twippera.auth_verify = function() {
@@ -170,7 +174,7 @@ var Twippera = {
             return;
         }
         $('auth_error_msg').textContent = '';
-        var pin = $('oauth_pin').value;
+        var pin = trim($('oauth_pin').value);
         authClient.verifyClient(pin, function() {
             authClient.verifyCredentials(function(xhr) {
                 var user = xhr.responseXML.getElementsByTagName('screen_name')[0].textContent;

@@ -64,7 +64,7 @@ TC.prototype.createAgent = function(method) {
     }
     return new Twitter.APIAgent(this, Twitter.API[method]);
 };
-TC.prototype.requestToken = function requestToken(callback) {
+TC.prototype.requestToken = function requestToken(callback, errorback) {
     var agent = this.createAgent('oauth/request_token');
     var req = agent.send();
     var self = this;
@@ -73,6 +73,9 @@ TC.prototype.requestToken = function requestToken(callback) {
             var rr = OAuth.getParameterMap(req.responseText);
             self.registerCredential(rr['oauth_token'], rr['oauth_token_secret']);
             if (callback) callback.apply(this, [req]);
+        }
+        else {
+            if (errorback) errorback.apply(this, [req]);
         }
     };
 };
