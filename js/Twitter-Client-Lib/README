@@ -1,0 +1,60 @@
+// oauth.js sha1.js 
+// http://oauth.googlecode.com/svn/code/javascript/
+
+
+var clientInfo = {
+    name: 'Client Name'
+}
+var accessor = {
+    consumerKey: 'registered consumerKey',
+    consumerSecret: 'registered consumerSecret'
+};
+var client = new Twitter.Client(clientInfo, accessor);
+
+client.addEventListener('unauthorized', function(e) {
+    client.requestToken(function() {
+        location.href = client.getAuthorizeURL();
+    });
+});
+client.addEventListener('error', function(e) {
+    //
+});
+
+function verifyClient() {
+    var pin = document.getElementById('PIN').value;
+    client.verifyClient(pin, function() {
+        //
+    });
+    return false;
+}
+
+function send() {
+    var status = document.getElementById('STATUS').value;
+
+    var agent = client.createAgent('statuses/update');
+    agent.params = {
+        status: status
+    };
+    var req = agent.send();
+    req.onload = function() {
+        if (client.handleResponseCode(req, agent)) {
+            //
+        }
+    };
+}
+
+function verifyCredential() {
+    client.verifyCredentials(function(xhr) {
+        //
+    });
+}
+
+function timeline() {
+    var agent = client.createAgent('statuses/friends_timeline');
+    var req = agent.send();
+    req.onload = function() {
+        if (client.handleResponseCode(req, agent)) {
+            //
+        }
+    };
+}

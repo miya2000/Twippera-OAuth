@@ -5,6 +5,11 @@
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
   <title>Twippera</title>
   <link rel="stylesheet" type="text/css" href="twippera.css">
+  <script src="js/Twitter-Client-Lib/sha1.js" type="text/javascript"></script>
+  <script src="js/Twitter-Client-Lib/oauth.js" type="text/javascript"></script>
+  <script src="js/Twitter-Client-Lib/twitter.js" type="text/javascript"></script>
+  <script src="js/Twitter-Client-Lib/twitter.api.js" type="text/javascript"></script>
+  <script src="js/Twitter-Client-Lib/twitter.api.fav.js" type="text/javascript"></script>
   <script src="js/lng.js" type="text/javascript"></script>
   <script src="js/lib.js" type="text/javascript"></script>
   <script src="js/twippera.js" type="text/javascript"></script>
@@ -12,12 +17,51 @@
 </head>
 <body>
 
-<div id="popup"><div id="popupInner">
+<div class="popup" id="popup"><div class="popupInner" id="popupInner">
   <div class="tl"><div class="tr"><div class="t"></div></div></div>
   <div class="l"><div class="r"><div class="body">
       <span id="pclose" class="pclose all_buttons"></span>
       <p class="msg"></p>
       <p class="command"><button class="btn all_buttons"><span><span></span></span></button></p>
+  </div></div></div>
+  <div class="bl"><div class="br"><div class="b"></div></div></div>
+</div></div>
+
+<div class="popup" id="auth_popup"><div class="popupInner" id="auth_popupInner">
+  <div class="tl"><div class="tr"><div class="t"></div></div></div>
+  <div class="l"><div class="r"><div class="body">
+    <span id="auth_pclose" class="pclose all_buttons"></span>
+    <h3>Authorization Process</h3>
+    <p>Sorry this complex process.</p>
+    <div class="msg">
+      <ol>
+        <li id="auth_step1">Visit <a id="consumer_app" href="http://twitter.com/apps/">http://twitter.com/apps/</a>, and 
+        register your own application. (<a href="http://github.com/miya2000/Twippera-OAuth/wiki#application_example">example</a>)<br>
+        Then you will get "Consumer key/secret".
+        </li>
+        <li id="auth_step2">Input your "Consumer key/secret".<br>
+          <fieldset>
+          <label for="consumer_key">Consumer key: </label><br>
+          <input type="text" id="consumer_key" size="34" autocomplete="off"></br>
+          <label for="consumer_secret">Consumer secret: </label><br>
+          <input type="text" id="consumer_secret" size="64" autocomplete="off">
+          </fieldset>
+        </li>
+        <li id="auth_step3">Go to <a id="oauth_auth" href="javascript:void(0)">authorize page</a>, and allow this application access to your account.<br>
+        Then you will get "PIN" number.
+        </li>
+        <li id="auth_step4">Input "PIN" number.<br>
+          <fieldset>
+          <label for="oauth_pin">PIN: </label><input type="text" id="oauth_pin" size="12">
+          </fieldset>
+        </li>
+      </ol>
+      <p id="auth_error_msg"></p>
+    </div>
+    <p class="command">
+        <button id="auth_done"   class="btn all_buttons"><span><span>Done</span></span></button>
+        <button id="auth_cancel" class="btn all_buttons"><span><span>Cancel</span></span></button>
+    </p>
   </div></div></div>
   <div class="bl"><div class="br"><div class="b"></div></div></div>
 </div></div>
@@ -32,8 +76,8 @@
     <div id="header">
       <ul id="navi">
         <li><button class="reload all_buttons" id="reload" ></button></li>
-		<li><button class="config all_buttons" id="pref" ></button></li>
-		<li><button class="close all_buttons" id="wclose" ></button></li>
+        <li><button class="config all_buttons" id="pref" ></button></li>
+        <li><button class="close all_buttons" id="wclose" ></button></li>
       </ul>
       <!-- /header --></div>
     <div id="front">
@@ -49,21 +93,32 @@
       <div id="postForm">
         <h2 id="wayd">What are you doing?</h2>
         <p class="char"><span id="ca">Characters available</span>: <span id="count"></span></p>
-	<form action="javascript:Twippera.post('update')"><div><input id="status" value="" autocomplete="off"><button class="post all_buttons" id="post" ></button></div></form>
+    <form action="javascript:Twippera.post('update')"><div><input id="status" value="" autocomplete="off"><button class="post all_buttons" id="post" ></button></div></form>
       </div>
     </div>
-
     <div id="config">
       <div id="configInner">
 
         <h2 class="title" id="set">Settings</h2>
-		
-		<form action="javascript:Twippera.config.init();">
-        <div id="login" class="section">
-            <p><label for="user"><span id="un">username</span></label>: <input id="user"></p>
-            <p><label for="pass"><span id="pw">password</span></label>: <input id="pass" type="password"></p>
+        
+        <form action="javascript:Twippera.auth();">
+        <div id="login" class="section unauthorized">
+            <h3 id="auth">Authorization</h3>
+            <p>
+                <span class="unauthorized">
+                    <span id="unauthorized">unauthorized.</span>
+                    <span class="cmdBtn all_buttons"><button class="cmdBtnInner all_buttons_inner" id="doauth">Start Authorization</button></span>
+                </span>
+                <span class="authorized">
+                    <span id="authorized">authorized.</span>
+                    <button id="reauth">change account?</button>
+                    <a style="display: none;" onclick="javascript:Twippera.auth_clearCredential();">clear credential</a>
+                </span>
+            </p>
         </div>
+        </form>
 
+        <form action="javascript:Twippera.config.init();">
         <div class="section">
           <h3 id="ar">Auto Refresh</h3>
           <p><span id="per">per</span> <input type="number" step="1" min="1" id="reflesh" value="1" width="5"> <span id="min">minutes</span></p>
@@ -97,10 +152,10 @@
              <option value="sp_ch">简体中文</option>
              <option value="fr">Français</option>
              <option value="ge">Deutsch</option>
-			<option value="ua">Ймення на рідній мові</option>
-			<option value="lv">Latviešu</option>
-		  	<option value="no">bokmål</option>
-		  	<option value="pt_br">Português BR</option>
+            <option value="ua">Ймення на рідній мові</option>
+            <option value="lv">Latviešu</option>
+            <option value="no">bokmål</option>
+            <option value="pt_br">Português BR</option>
           </select></p>
         </div>
 
@@ -111,7 +166,7 @@
           -->
           <!-- <p><button class="save all_buttons" id="save" /></p> -->
         </div>
-		</form>
+        </form>
 
       <!-- /configInner --></div>
 

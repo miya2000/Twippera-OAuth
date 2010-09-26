@@ -1,8 +1,8 @@
 // twippera.js
 
 var Twippera = {
-    version  : '20090609-1',
-    release  : 35,
+    version  : '20100901-1-oauth',
+    release  : 36,
     TID      : null,
     parse    : true,
     postMsgs : [],
@@ -10,9 +10,193 @@ var Twippera = {
     timeout  : 30000,
     fcount   : 0,
     msgState : "recent",
-    itemfocus: null
+    itemfocus: null,
+    clientInfo: {
+        name: 'Twippera'
+    }
 }
+
+    Twippera.initClient = function() {
+        var ckey = Widget.getValue('oauth_consumer_key');
+        var csec = Widget.getValue('oauth_consumer_secret');
+        var token = Widget.getValue('oauth_token');
+        var tokenSecret = Widget.getValue('oauth_token_secret');
+        if (!ckey || !csec || !token || !tokenSecret) {
+            Twippera.auth_unauthorized();
+            return false;
+        }
+        var client = Twippera.client = new Twitter.Client(Twippera.clientInfo, {
+            consumerKey: ckey,
+            consumerSecret: csec,
+            token: token,
+            tokenSecret: tokenSecret
+        });
+        client.addEventListener('unauthorized', function() {
+            Twippera.auth_unauthorized();
+            Twippera.auth();
+        });
+        Twippera.auth_authorized();
+        return true;
+    };
+    Twippera.auth_authorized = function() {
+        removeClass($('login'), 'unauthorized');
+        appendClass($('login'), 'authorized');
+    };
+    Twippera.auth_unauthorized = function() {
+        removeClass($('login'), 'authorized');
+        appendClass($('login'), 'unauthorized');
+    };
+    Twippera.auth_clearCredential = function() {
+        Widget.setValue('', 'oauth_token');
+        Widget.setValue('', 'oauth_token_secret');
+    };
+
+    var authClient = null;
+    var authCallback = null;
+    Twippera.auth = function(callback) {
+        authCallback = callback; // overwrite.
+        // return if already shown.
+        if ($('auth_popup').style.display == 'block') {
+            return;
+        }
+        $('consumer_key').value = Widget.getValue('oauth_consumer_key');
+        $('consumer_secret').value = Widget.getValue('oauth_consumer_secret');
+        $('oauth_pin').value = '';
+        $('auth_error_msg').textContent = '';
+        if ($('consumer_key').value && $('consumer_secret').value) {
+            Twippera.auth_updateStep(3);
+        }
+        else {
+            Twippera.auth_updateStep(1);
+        }
+        Twippera.blockUI($('auth_popup'));
+    };
+    Twippera.auth_init = function() {
+        var goto_step2 = function(e) {
+            var step = Twippera.auth_currentStep();
+            if (step < 2) {
+                Twippera.auth_updateStep(2);
+            }
+        };
+        $('consumer_app').addEventListener('click', goto_step2, false);
+        $('auth_step2').addEventListener('click', goto_step2, false);
+        $('consumer_key').addEventListener('focus', goto_step2, false);
+        $('consumer_secret').addEventListener('focus', goto_step2, false);
+        var observe_consumer_input = function(e) {
+            var ckey = $('consumer_key').value;
+            var csec = $('consumer_secret').value;
+            if (/\w/.test(ckey) && /\w/.test(csec)) {
+                Twippera.auth_updateStep(3);
+            }
+            else {
+                Twippera.auth_updateStep(2);
+            }
+        };
+        $('consumer_key').addEventListener('input', observe_consumer_input, false);
+        $('consumer_secret').addEventListener('input', observe_consumer_input, false);
+        var goto_step4 = function(e) {
+            var step = Twippera.auth_currentStep();
+            if (step == 3) {
+                Twippera.auth_updateStep(4);
+            }
+        };
+        $('oauth_auth').addEventListener('click', goto_step4, false);
+        $('auth_step4').addEventListener('click', goto_step4, false);
+        $('oauth_pin').addEventListener('focus', goto_step4, false);
+        var observe_pin_input = function(e) {
+            var step = Twippera.auth_currentStep();
+            $('auth_done').disabled = (step < 4 || /^\s*$/.test($('oauth_pin').value));
+        };
+        $('oauth_pin').addEventListener('input', observe_pin_input, false);
+        
+        $('oauth_auth').addEventListener('click', function(e) {
+            e.preventDefault();
+            Twippera.auth_requestToken();
+        }, false);
+        $('auth_done').addEventListener('click', function(e) {
+            e.preventDefault();
+            Twippera.auth_verify();
+        }, false);
+        
+        var auth_cancel = Twippera.auth_cancel;
+        $('auth_pclose').addEventListener('click', auth_cancel, false);
+        $('auth_cancel').addEventListener('click', auth_cancel, false);
+    };
+    Twippera.auth_cancel = function() {
+        Twippera.unblockUI();
+        authClient = null;
+        authCallback = null;
+    };
+    Twippera.auth_updateStep = function(auth_step) {
+        var step = Number(auth_step) || 1;
+        var steps = [$('auth_step1'), $('auth_step2'), $('auth_step3'), $('auth_step4')];
+        for (var i = 0, n; n = steps[i]; i++) {
+            removeClass(n, 'current_step');
+        }
+        appendClass(steps[step - 1], 'current_step');
+        $('oauth_pin').disabled = (step < 3);
+        $('auth_done').disabled = (step < 4 || /^\s*$/.test($('oauth_pin').value));
+    };
+    Twippera.auth_currentStep = function(auth_step) {
+        var steps = [$('auth_step1'), $('auth_step2'), $('auth_step3'), $('auth_step4')];
+        for (var i = 0, n; n = steps[i]; i++) {
+            if (hasClass(n, 'current_step')) return (i + 1);
+        }
+        return 1;
+    };
+    Twippera.auth_requestToken = function() {
+        var ckey = $('consumer_key').value;
+        var csec = $('consumer_secret').value;
+        if (!/\w/.test(ckey) || !/\w/.test(csec)) {
+            //TODO: add error mark.
+            return;
+        }
+        authClient = new Twitter.Client(Twippera.clientInfo, {
+            consumerKey: ckey,
+            consumerSecret: csec
+        });
+        authClient.requestToken(function() {
+            $('oauth_pin').value = '';
+            var authURL = authClient.getAuthorizeURL();
+            $('oauth_auth').href = authURL;
+            widget.openURL(authURL);
+            Twippera.auth_updateStep(4);
+        });
+    };
+    Twippera.auth_verify = function() {
+        if (!authClient) {
+            $('auth_error_msg').textContent = 'This operation requires authorize application(Step 3).'
+            Twippera.auth_updateStep(3);
+            return;
+        }
+        $('auth_error_msg').textContent = '';
+        var pin = $('oauth_pin').value;
+        authClient.verifyClient(pin, function() {
+            authClient.verifyCredentials(function(xhr) {
+                var user = xhr.responseXML.getElementsByTagName('screen_name')[0].textContent;
+                Twippera.config.user = user;
+                Widget.setValue(user, 'user');
+                Widget.setValue(authClient.accessor.consumerKey, 'oauth_consumer_key');
+                Widget.setValue(authClient.accessor.consumerSecret, 'oauth_consumer_secret');
+                Widget.setValue(authClient.accessor.token, 'oauth_token');
+                Widget.setValue(authClient.accessor.tokenSecret, 'oauth_token_secret');
+                Twippera.initClient();
+                Twippera.unblockUI();
+                authClient = null;
+                if (authCallback) {
+                    var f = authCallback;
+                    authCallback = null;
+                    f();
+                }
+            });
+        },
+        function() {
+            $('auth_error_msg').textContent = 'verification failed. Please check input values and retry.'
+        });
+    };
+
     Twippera.initEvent = function() {
+        Twippera.auth_init();
         var self = this;
         var config = self.config;
         var locale = config.locale;
@@ -86,10 +270,10 @@ var Twippera = {
                 '&nbsp;简体中文: Jimmy Lvo',
                 '&nbsp;Français: Yoann007',
                 '&nbsp;Deutsch: Andrew Kupfer',
-				'&nbsp;Ймення на рідній мові: Victoria Herukh',
-				'&nbsp;Latviešu: Ivars Šaudinis',
-				'&nbsp;Norsk bokmål: Brede Kaasa',
-				'&nbsp;Português BR Carlos Gomes'
+                '&nbsp;Ймення на рідній мові: Victoria Herukh',
+                '&nbsp;Latviešu: Ivars Šaudinis',
+                '&nbsp;Norsk bokmål: Brede Kaasa',
+                '&nbsp;Português BR Carlos Gomes'
             );
         }, false);
 
@@ -200,6 +384,13 @@ var Twippera = {
     };
 
     Twippera.post = function(postType) {
+
+        var client = Twippera.client;
+        if (!client) {
+            Twippera.auth(retry(arguments, this));
+            return;
+        }
+
         var self = this;
             self.hidePopup();
         var config = Twippera.config;
@@ -208,7 +399,6 @@ var Twippera = {
 
 
         var status = "";
-        var query = null;
         var type;
         $('reload').style.backgroundImage = 'url("images/loading.gif")';
 
@@ -216,7 +406,6 @@ var Twippera = {
             type = "POST"
             status = $('status').value;
             if(status == "") return;
-            query = 'status=' + encodeURIComponent(status) + '&source=Twippera';
             $('status').value = "";
             if(self.postMsgs[0]) {
                 if(!self.postMsgs[0].post) {
@@ -236,10 +425,23 @@ var Twippera = {
             }
         }
 
-        var url = "http://twitter.com/statuses/" + postType + ".json";
-        Ajax.request(
-            url,
-            function(xhr) {
+        var agent = client.createAgent('statuses/' + postType);
+        agent.format = 'json';
+        agent.params = {};
+        if (status) agent.params.status = status;
+        var xhr = agent.send();
+        var timeout = new Timer(
+            config.timeout, 
+            function() {
+                xhr.abort();
+                self.showPopup(config.langs.timeout);
+                $('reload').style.backgroundImage = 'url("images/reload.gif")';
+                log(agent.buildURL(), "Timeout");
+            }
+        );
+        xhr.onload = function() {
+            timeout.dispose();
+            if (client.handleResponseCode(xhr, agent)) {
                 if(postType == 'friends_timeline') {
                     cache.update(xhr.responseText);
                 } else if(postType == 'update') {
@@ -252,39 +454,29 @@ var Twippera = {
                 status = $('status').value;
                 var rest   = 140 - status.length;
                 $('count').innerHTML = (rest >= 0) ? rest : 0;
-            }, {
-                type: type,
-                query: query,
-                user: config.user,
-                pass: config.pass,
-                timeout: config.timeout,
-                timeoutHandler: function(url) {
-                    self.showPopup(config.langs.timeout);
-                    $('reload').style.backgroundImage = 'url("images/reload.gif")';
-                    log(url, "Timeout");
-                },
-                errorHandler: function(url, st, txt) {
-                    log(url + ": " + st + ": " + txt);
-                    $('reload').style.backgroundImage = 'url("images/reload.gif")';
-                }
             }
-        );
+            else {
+                log(agent.buildURL() + ": " + xhr.status + ": " + xhr.statusText);
+                $('reload').style.backgroundImage = 'url("images/reload.gif")';
+            }
+        };
     };
 
     Twippera.destroy = function(id) {
-        var config = Twippera.config;
-        var api_url = "http://twitter.com/statuses/destroy/" + id + ".json"
-
-        Ajax.request(
-            api_url,
-            function(xhr) {
-                $(id).parentNode.removeChild($(id));
-                Twippera.cache.remove(id);
-            }, {
-                user: config.user,
-                pass: config.apss
-            }
-        );
+        var client = Twippera.client;
+        if (!client) {
+            Twippera.auth(retry(arguments, this));
+            return;
+        }
+        var agent = client.createAgent('statuses/destroy');
+        agent.params = {
+            id: id
+        };
+        var req = agent.send();
+        req.onload = function() {
+            $(id).parentNode.removeChild($(id));
+            Twippera.cache.remove(id);
+        };
     }
     Twippera.display = function(to) {
         if(this.msgState == to) return;
@@ -325,22 +517,13 @@ var Twippera = {
     }
 
     Twippera.config = {
-        user    : "",
-        pass    : "",
         locale  : "en",
-		langs   : {},
+        langs   : {},
         lng     : null,
         time    : 60000,
         limit   : 200
     };
     Twippera.config.init = function() {
-        var user = $('user').value;
-        var pass = $('pass').value;
-
-        this.user = user;
-        this.pass = pass;
-        Widget.setValue(user, 'user');
-        Widget.setValue(pass, 'pass');
 
         var time = parseInt($('reflesh').value) * 1000 * 60;
         Widget.setValue(time, "time");
@@ -371,7 +554,6 @@ var Twippera = {
         $('locale').selectedIndex = localeIndex[this.locale];
         this.setLocale(this.locale);
         this.user = Widget.getValue('user');
-        this.pass = Widget.getValue('pass');
         this.time = Widget.getValue('time');
         this.ear  = Widget.getValue('enableReflesh', 'Boolean');
         this.timeout = Widget.getValue('timeout', 'Number');
@@ -379,11 +561,11 @@ var Twippera = {
 
         $('count').innerHTML = '140';
 
-        if(this.user != "" && this.pass !="") {
+        Twippera.initClient();
+        if (Twippera.client) {
+
             $(Twippera.msgState).style.backgroundColor = "#328BE0"
             $(Twippera.msgState).style.color = "#fff"
-            $('user').value = this.user;
-            $('pass').value = this.pass;
 
             if(Twippera.fcount > 4) {
                 Twippera.favorite.get(false);
@@ -407,20 +589,20 @@ var Twippera = {
         }
     };
     Twippera.config.setLocale = function(lng) {
-		this.script= document.createElement('script');
-		this.script.type = 'text/javascript';
-		this.script.src = './js/lng/' + lng + '.js';
-		document.body.appendChild(this.script);
+        this.script= document.createElement('script');
+        this.script.type = 'text/javascript';
+        this.script.src = './js/lng/' + lng + '.js';
+        document.body.appendChild(this.script);
     };
-	Twippera.config.loadLocaleFile = function(langs) {
-	    for(var i in langs) {
-			if($(i)) {
-				$(i).innerHTML = langs[i];
-			}
-			this.langs[i] = langs[i];
+    Twippera.config.loadLocaleFile = function(langs) {
+        for(var i in langs) {
+            if($(i)) {
+                $(i).innerHTML = langs[i];
+            }
+            this.langs[i] = langs[i];
         }
-		this.script.parentNode.removeChild(this.script);
-	};
+        this.script.parentNode.removeChild(this.script);
+    };
 
     Twippera.msg = function() {
         this.list = [];
@@ -586,6 +768,11 @@ var Twippera = {
     Twippera.replies = new Twippera.msg; 
     Twippera.replies.time = 0;
     Twippera.replies.get = function() {
+        var client = Twippera.client;
+        if (!client) {
+            Twippera.auth(retry(arguments, this));
+            return;
+        }
         var n = new Date();
         if(this.time > 0 && (n - this.time) < 600000) {
             this.parse();
@@ -594,21 +781,20 @@ var Twippera = {
         this.time = n;
 
         var self = this;
-        var config = Twippera.config;
 
-        Ajax.request(
-            "http://twitter.com/statuses/replies.json",
-            function(xhr) {
+        var agent = client.createAgent('statuses/mentions');
+        agent.format = 'json';
+        var xhr = agent.send();
+        xhr.onload = function() {
+            if (client.handleResponseCode(xhr, agent)) {
                 self.update(xhr.responseText);
                 self.parse();
-            }, {
-                user: config.user,
-                pass: config.pass,
-                errorHandler: function(url, st, txt) {
-                    self.time = 0;
-                    log(url, st, txt);
-                }
-            });
+            }
+            else {
+                self.time = 0;
+                log(agent.buildURL(), xhr.status, xhr.statusText);
+            }
+        };
     }
     Twippera.replies.reply = function(user) {
         var status   = $('status');
@@ -621,6 +807,11 @@ var Twippera = {
     Twippera.favorite.favorites = [];
     Twippera.favorite.time = 0;
     Twippera.favorite.get = function(parse) {
+        var client = Twippera.client;
+        if (!client) {
+            Twippera.auth(retry(arguments, this));
+            return;
+        }
         var n = new Date();
         if(this.list.length > 0 && (n - this.time) < 600000) {
             if(parse) this.parse();
@@ -629,12 +820,13 @@ var Twippera = {
         this.time = n;
 
         var self = this;
-        var config = Twippera.config
 
-        var url = 'http://twitter.com/favorites.json';
-        Ajax.request(
-            url,
-            function(xhr) {
+        var agent = client.createAgent('favorites');
+        agent.format = 'json';
+        agent.asynch = false;
+        var xhr = agent.send();
+        xhr.onload = function() {
+            if (client.handleResponseCode(xhr, agent)) {
                 var res = xhr.responseText;
                 var json = eval(res);
                 for(var i = 0, len = json.length; i < len; i++) {
@@ -646,38 +838,44 @@ var Twippera = {
                     self.update(res);
                     self.parse();
                 }
-            }, {
-                user: config.user,
-                pass: config.pass,
-                asycn: false,
-                errorHandler: function(url, st, txt) {
-                    self.time = 0;
-                    log(url, st, txt);
-                }
             }
-        );
+            else {
+                self.time = 0;
+                log(agent.buildURL(), xhr.status, xhr.statusText);
+            }
+        };
+        xhr.onload(); // agent.asynch = false;
     };
     Twippera.favorite.isFavorite = function(id) {
         return this.favorites.contains(id);
     };
     Twippera.favorite.toggle = function(elm, id){
+        var client = Twippera.client;
+        if (!client) {
+            Twippera.auth(retry(arguments, this));
+            return;
+        }
         var curImage = elm.style.backgroundImage;
         var self = this;
-        var config = Twippera.config;
-        var url;
+        var action;
         var c = false;
 
         elm.style.backgroundImage = "url('images/icon_throbber.gif')";
 
         if(this.isFavorite(id)) {
-            url = 'http://twitter.com/favorites/destroy/' + id;
+            action = 'favorites/destroy';
             c = true;
         } else {
-            url = 'http://twitter.com/favorites/create/' + id;
+            action = 'favorites/create';
         }
-        Ajax.request(
-            url + ".json",
-            function(xhr) {
+
+        var agent = client.createAgent(action);
+        agent.params = {
+            id: id
+        };
+        var xhr = agent.send();
+        xhr.onload = function() {
+            if (client.handleResponseCode(xhr, agent)) {
                 if(c) {
                     self.favorites = self.favorites.del(id);
                     elm.style.backgroundImage = "url('images/icon_star_empty.gif')";
@@ -685,12 +883,8 @@ var Twippera = {
                     elm.style.backgroundImage = "url('images/icon_star_full.gif')";
                     self.favorites.push(id);
                 }
-            }, {
-                user: config.user,
-                pass: config.pass,
-                type: "POST"
             }
-        );
+        };
     };
 
     Twippera.update = {
@@ -698,7 +892,7 @@ var Twippera = {
     }
     Twippera.update.check = function() {
         var self = this;
-		var config = self.config;
+        var config = self.config;
 
         Ajax.request(
             self.url,
@@ -760,6 +954,75 @@ var Twippera = {
     Twippera.hidePopup = function() {
         var popup = $('popup');
             popup.style.display = 'none';
+    };
+
+    // from nicovideo_ndr.js (http://github.com/miya2000/ndr)
+    Twippera.blockUI = function(content) { // (ref:jQuery blockUI plugin)
+        // if already blocking, replace content and return;
+        if (this.uiBlocker) {
+            if (this.uiBlocker.content) this.uiBlocker.content.style.display = 'none';
+            this.uiBlocker.content = setContent(content);
+            return;
+        }
+        
+        function setContent(content) {
+            content.style.position = 'absolute';
+            content.style.zIndex = '1001';
+            content.style.display = 'block';
+            return content;
+        }
+        
+        var uiBlocker = this.uiBlocker = {
+            preActive : document.activeElement
+        };
+        var self = this;
+        var background = uiBlocker.background = document.createElement('div');
+        background.style.cssText = 'width: 100%; height: 100%; position: absolute; top: 0; left: 0; z-index: 1000; background-color: #000; opacity: 0.15;';
+        background.addEventListener('mousedown', function(e) { e.preventDefault() }, false);
+        background.addEventListener('dblclick', function(e) { self.unblockUI() }, false);
+        document.body.appendChild(background);
+        var dummy = document.createElement('input');
+        dummy.style.cssText = 'visibility: hidden; width: 0; height: 0;';
+        background.appendChild(dummy);
+        dummy.focus();
+        
+        uiBlocker.content = setContent(content);
+        
+        uiBlocker.handler = function(e) {
+            if (e.keyCode == 27) { // Esc
+                self.unblockUI();
+            }
+            else if (e.keyCode == 9) { // Tab
+                var inputs = evaluate('descendant::*[self::input or self::select or self::button or self::textarea]', uiBlocker.content); // for dynamic change.
+                if (inputs.length == 0) {
+                    e.preventDefault();
+                }
+                else if (inputs.indexOf(e.target) < 0) {
+                    e.preventDefault();
+                    inputs[0].focus();
+                    if (inputs[0].select) inputs[0].select();
+                }
+                else if (e.target == inputs[0] && e.shiftKey) {
+                    e.preventDefault();
+                    inputs[inputs.length -1].focus();
+                    if (inputs[inputs.length -1].select) inputs[inputs.length -1].select();
+                }
+                else if (e.target == inputs[inputs.length -1] && !e.shiftKey) {
+                    e.preventDefault();
+                    inputs[0].focus();
+                    if (inputs[0].select) inputs[0].select();
+                }
+            }
+        }
+        window.addEventListener('keypress', uiBlocker.handler, false);
+    };
+    Twippera.unblockUI = function() {
+        var uiBlocker = this.uiBlocker;
+        if (!uiBlocker) return;
+        window.removeEventListener('keypress', uiBlocker.handler, false);
+        uiBlocker.background.parentNode.removeChild(uiBlocker.background);
+        uiBlocker.content.style.display = 'none';
+        delete this.uiBlocker;
     };
 
 window.addEventListener('load', function() {

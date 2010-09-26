@@ -3,6 +3,16 @@ function $(el) {
     return $[el] || ($[el] = (document.getElementById(el) || el));
 }
 
+// xpath
+function evaluate(xpath, context) {
+    var eles = document.evaluate(xpath, context || document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+    var arr = [];
+    for (var i = 0, len = eles.snapshotLength; i < len; i++) {
+        arr.push(eles.snapshotItem(i));
+    }
+    return arr;
+}
+
 // Refer to "JavaScript: The Definitive Guide,  5th Edition" (O'REILLY)
 var Ajax = {};
     Ajax.request = function(url, callback, options) {
@@ -83,7 +93,7 @@ var Tools = {};
         return postTime.getHours() + ":" + postTime.getMinutes();
     };
     Tools.createTime = function(time, locale) {
-		var langs = Twippera.config.langs;
+        var langs = Twippera.config.langs;
         var t = time.split(' ');
         var Month = {
             'Jan': 0, 'Feb': 1, 'Mar': 2, 'Apr': 3, 'May': 4, 'Jun': 5,
@@ -128,8 +138,8 @@ var Tools = {};
             }
         );
         return text.replace(/\B@([_a-z0-9]+)/ig, function(reply) {
-			return reply.charAt(0) + '<a href="http://twitter.com/' + reply.substring(1) + '">' + reply.substring(1) + '</a>';
-		});
+            return reply.charAt(0) + '<a href="http://twitter.com/' + reply.substring(1) + '">' + reply.substring(1) + '</a>';
+        });
     };
     // Tinyurl 展開: 1つに付き about 600ms
     Tools.resolveTinyUrl = function(url) {
@@ -144,11 +154,6 @@ var Tools = {};
             xhr.send(null);
         return exURL || url;
     };
-
-// 2つ以上のクラスがつく可能性がある場合
-var appendClass = function(elm, _class) {
-    elm.className += elm.className ? " " + _class : _class;
-}
 
 //Widget
 var Widget = {}
@@ -178,8 +183,8 @@ var Widget = {}
                 case 'Array':
                     return value.split(',');
                     break;
-				case 'Boolean':
-					return value == 'true' ? true : false;
+                case 'Boolean':
+                    return value == 'true' ? true : false;
                 default:
                     break;
             }
@@ -228,10 +233,6 @@ function addClass(elm, class) {
     elm.className = elm.className + ' ' + class;
 }
 
-function removeClass(elm, class) {
-    elm.calssName.replace(new RegExp(class), "");
-}
-
 function setCaretPosition(ctrl, pos) {
     if(ctrl.setSelectionRange) {
         ctrl.focus();
@@ -246,6 +247,50 @@ function setCaretPosition(ctrl, pos) {
     }
 }
 
+function hasClass(el, className) {
+    //http://d.hatena.ne.jp/higeorange/20090613/1244821192
+    return new RegExp('(?:^|\\s)' + className + '(?:\\s|$)').test(el.className);
+}
+function appendClass(el, className) {
+    if (!el) return;
+    if (new RegExp('(?:^|\\s)' + className + '\\s*$').test(el.className)) return;
+    removeClass(el, className);
+    el.className += ' ' + className;
+}
+function removeClass(el, className) {
+    if (!el) return;
+    var classes = className.split(/\s+/);
+    var orgClassName = el.className;
+    var newClassName = orgClassName;
+    for (var i = 0; i < classes.length; i++) {
+        newClassName = newClassName.replace(new RegExp('(?:^|\\s)' + classes[i] + '(?:\\s|$)', 'g'), '').replace(/\s+/g, ' ').replace(/^\s|\s$/, '');
+    }
+    if (orgClassName != newClassName) {
+        el.className = newClassName;
+    }
+}
+
+function Timer(msec, func) {
+    var tid = setTimeout(func, msec);
+    var disposed = false;
+    return {
+        dispose: function() {
+            if (!disposed) {
+                clearTimeout(tid);
+                disposed = true;
+            }
+        }
+    };
+}
+
+function retry(org_arguments, org_this) {
+    var args = Array.prototype.slice.call(org_arguments);
+    var f = org_arguments.callee;
+    return function () {
+        f.apply(org_this, args);
+    };
+}
+
 //
 // TransURI (UTF-8): transURI.js (Ver.041211)
 //
@@ -253,8 +298,8 @@ function setCaretPosition(ctrl, pos) {
 //
 
 var DecodeURI=function(str){
-	return str.replace(/%(E(0%[AB]|[1-CEF]%[89AB]|D%[89])[0-9A-F]|C[2-9A-F]|D[0-9A-F])%[89AB][0-9A-F]|%[0-7][0-9A-F]/ig,function(s){
-		var c=parseInt(s.substring(1),16);
-		return String.fromCharCode(c<128?c:c<224?(c&31)<<6|parseInt(s.substring(4),16)&63:((c&15)<<6|parseInt(s.substring(4),16)&63)<<6|parseInt(s.substring(7),16)&63)
-	})
+    return str.replace(/%(E(0%[AB]|[1-CEF]%[89AB]|D%[89])[0-9A-F]|C[2-9A-F]|D[0-9A-F])%[89AB][0-9A-F]|%[0-7][0-9A-F]/ig,function(s){
+        var c=parseInt(s.substring(1),16);
+        return String.fromCharCode(c<128?c:c<224?(c&31)<<6|parseInt(s.substring(4),16)&63:((c&15)<<6|parseInt(s.substring(4),16)&63)<<6|parseInt(s.substring(7),16)&63)
+    })
 };
