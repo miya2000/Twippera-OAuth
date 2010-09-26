@@ -1,8 +1,8 @@
 @if(0)==(0) ECHO OFF
-if exist Widget_Twippera_oAuth.zip DEL Widget_Twippera_oAuth.zip
-if exist Widget_Twippera_oAuth.wgt DEL Widget_Twippera_oAuth.wgt
-CScript.exe //NoLogo //E:JScript "%~f0" Widget_Twippera_oAuth.zip config.xml index.html images js Changelog Lang License License-ja twippera.css twipperaRelease.txt
-REN Widget_Twippera_oAuth.zip Widget_Twippera_OAuth.wgt
+if exist Widget_Twippera_OAuth.zip DEL Widget_Twippera_OAuth.zip
+if exist Widget_Twippera_OAuth.wgt DEL Widget_Twippera_OAuth.wgt
+CScript.exe //NoLogo //E:JScript "%~f0" Widget_Twippera_OAuth.zip config.xml index.html images js Changelog Lang License License-ja twippera.css twipperaRelease.txt
+REN Widget_Twippera_OAuth.zip Widget_Twippera_OAuth.wgt
 GOTO :EOF
 @end
 
