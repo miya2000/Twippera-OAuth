@@ -229,8 +229,8 @@ Array.prototype.del = function(obj) {
     return r;
 }
 
-function addClass(elm, class) {
-    elm.className = elm.className + ' ' + class;
+function addClass(elm, className) {
+    elm.className = elm.className + ' ' + className;
 }
 
 function setCaretPosition(ctrl, pos) {

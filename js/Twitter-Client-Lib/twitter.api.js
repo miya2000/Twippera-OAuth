@@ -27,21 +27,21 @@ var API = [
     {
         name: 'oauth/request_token',
         description: 'Allows a Consumer application to obtain an OAuth Request Token to request user authorization. ',
-        url: 'http://twitter.com/oauth/request_token',
+        url: 'https://api.twitter.com/oauth/request_token',
         method: 'GET',
         auth: true
     },
     {
         name: 'oauth/authorize',
         description: 'Allows a Consumer application to use an OAuth Request Token to request user authorization. ',
-        url: 'http://twitter.com/oauth/authorize',
+        url: 'https://api.twitter.com/oauth/authorize',
         method: 'GET',
         auth: true
     },
     {
         name: 'oauth/access_token',
         description: 'Allows a Consumer application to exchange the OAuth Request Token for an OAuth Access Token. ',
-        url: 'http://twitter.com/oauth/access_token',
+        url: 'https://api.twitter.com/oauth/access_token',
         method: 'POST',
         auth: true,
         oparams: {
@@ -58,7 +58,7 @@ var API = [
     {
         name: 'statuses/public_timeline',
         description: 'Returns the 20 most recent statuses from non-protected users who have set a custom user icon. ',
-        url: 'http://twitter.com/statuses/public_timeline.format',
+        url: 'http://api.twitter.com/1/statuses/public_timeline.format',
         formats: [ 'xml', 'json', 'rss', 'atom' ],
         method: 'GET',
         auth: false
@@ -86,7 +86,7 @@ var API = [
     {
         name: 'statuses/friends_timeline',
         description: 'Returns the 20 most recent statuses posted by the authenticating user and that user\'s friends. ',
-        url: 'http://twitter.com/statuses/friends_timeline.format',
+        url: 'http://api.twitter.com/1/statuses/friends_timeline.format',
         formats: [ 'xml', 'json', 'rss', 'atom' ],
         method: 'GET',
         auth: true,
@@ -106,7 +106,7 @@ var API = [
     {
         name: 'statuses/user_timeline',
         description: 'Returns the 20 most recent statuses posted from the authenticating user. It\'s also possible to request another user\'s timeline via the id parameter. ',
-        url: 'http://twitter.com/statuses/user_timeline.format',
+        url: 'http://api.twitter.com/1/statuses/user_timeline.format',
         formats: [ 'xml', 'json', 'rss', 'atom' ],
         method: 'GET',
         auth: true, // if requesting a protected user's timeline.
@@ -122,7 +122,7 @@ var API = [
     {
         name: 'statuses/mentions',
         description: 'Returns the 20 most recent mentions (status containing @username) for the authenticating user. ',
-        url: 'http://twitter.com/statuses/mentions.format',
+        url: 'http://api.twitter.com/1/statuses/mentions.format',
         formats: [ 'xml', 'json', 'rss', 'atom' ],
         method: 'GET',
         auth: true,
@@ -136,7 +136,7 @@ var API = [
     {
         name: 'statuses/show',
         description: 'Returns a single status, specified by the id parameter below. ',
-        url: 'http://twitter.com/statuses/show/id.format',
+        url: 'http://api.twitter.com/1/statuses/show/id.format',
         formats: [ 'xml', 'json' ],
         method: 'GET',
         auth: true,
@@ -153,7 +153,7 @@ var API = [
     {
         name: 'statuses/update',
         description: 'Updates the authenticating user\'s status. ',
-        url: 'http://twitter.com/statuses/update.format',
+        url: 'http://api.twitter.com/1/statuses/update.format',
         formats: [ 'xml', 'json' ],
         method: 'POST',
         auth: true,
@@ -176,7 +176,7 @@ var API = [
     {
         name: 'statuses/destroy',
         description: 'Destroys the status specified by the required ID parameter. ',
-        url: 'http://twitter.com/statuses/destroy/id.format',
+        url: 'http://api.twitter.com/1/statuses/destroy/id.format',
         formats: [ 'xml', 'json' ],
         method: 'DELETE',
         auth: true,
@@ -193,7 +193,7 @@ var API = [
     {
         name: 'account/verify_credentials',
         description: 'Returns an HTTP 200 OK response code and a representation of the requesting user if authentication was successful; returns a 401 status code and an error message if not. ',
-        url: 'http://twitter.com/account/verify_credentials.format',
+        url: 'http://api.twitter.com/1/account/verify_credentials.format',
         formats: [ 'xml', 'json' ],
         method: 'GET', // I want to change HEAD but API returns 401...
         auth: true
@@ -201,7 +201,7 @@ var API = [
     {
         name: 'account/rate_limit_status',
         description: 'Returns the remaining number of API requests available to the requesting user before the API limit is reached for the current hour. ',
-        url: 'http://twitter.com/account/rate_limit_status.format',
+        url: 'http://api.twitter.com/1/account/rate_limit_status.format',
         formats: [ 'xml', 'json' ],
         method: 'GET',
         auth: true // false for IP limit.
