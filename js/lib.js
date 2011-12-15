@@ -131,7 +131,9 @@ var Tools = {};
                 if(url.indexOf('http://tinyurl.com/') == 0
                     || url.indexOf('http://z.la/') == 0
                     || url.indexOf('http://ff.im/') == 0
-                    || url.indexOf('http://bit.ly/') == 0) {
+                    || url.indexOf('http://bit.ly/') == 0
+                    || url.indexOf('http://t.co/') == 0
+                ) {
                     url = DecodeURI(self.resolveTinyUrl(url) || url);
                 }
                 return '<a href="' + url + '">' + url +'</a>';

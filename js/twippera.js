@@ -296,10 +296,6 @@ var Twippera = {
         $('pclose').addEventListener('click', function() {
             self.hidePopup();
         }, false);
-        $('status').addEventListener('keydown', function(evt) {
-            evt.preventDefault();
-            evt.stopPropagation();
-        }, false);
 
         $('status').addEventListener('keyup', function(evt) {
             evt.preventDefault();
@@ -619,7 +615,7 @@ var Twippera = {
                      'style="width:16px;height:16px" ',
                      'onclick="Twippera.replies.reply(\'#{usr}\')">',
                 '<span class="user" ',
-                      'onclick="widget.openURL(\'http://twitter.com/#{usr}\')">#{usr}',
+                      'onclick="widget.openURL(\'https://twitter.com/#{usr}\')">#{usr}',
                 '</span>',
                 ': ',
                 '<span class="msg">',
@@ -627,7 +623,7 @@ var Twippera = {
                 '</span>',
                 '<span class="meta">',
                     '<span class="post_time">',
-                        '<a href="http://twitter.com/#{usr}/statuses/#{id}">',
+                        '<a href="https://twitter.com/#{usr}/status/#{id}">',
                             '#{time}',
                         '</a>',
                     '</span>',
@@ -635,7 +631,7 @@ var Twippera = {
                     '#{trash}',
                     '<span class="fav" ',
                         'style="background-image:url(\'#{star}\')" ',
-                        'onclick="Twippera.favorite.toggle(this, #{id})">',
+                        'onclick="Twippera.favorite.toggle(this, \'#{id}\')">',
                     '</span>',
                 '</span>',
             '</li>'].join('');;
@@ -651,7 +647,7 @@ var Twippera = {
         var tmp = [];
 
         for(var i = 0; i < len; i++) {
-            if(this.check(json[i].id)) {
+            if(this.check(json[i].id_str)) {
                 if(json[i].text.indexOf('@' + config.user) >= 0) {
                     cl = 'tome';
                 } else if (json[i].user.screen_name == config.user) {
@@ -660,7 +656,7 @@ var Twippera = {
                     cl = null;
                 }
                 tmp.push({
-                    id     : json[i].id,
+                    id     : json[i].id_str,
                     img    : json[i].user.profile_image_url,
                     usr    : json[i].user.screen_name,
                     msg    : json[i].text,
@@ -727,7 +723,7 @@ var Twippera = {
             var trash = "";
             if(usr.class) {
                 if(usr.class.indexOf('myself') > -1) {
-                    trash = '<span class="trash" onclick="Twippera.destroy(' + usr.id + ')"></span>';
+                    trash = '<span class="trash" onclick="Twippera.destroy(\'' + usr.id + '\')"></span>';
                 }
             }
             var prot = "";
@@ -834,8 +830,8 @@ var Twippera = {
                 var res = xhr.responseText;
                 var json = eval(res);
                 for(var i = 0, len = json.length; i < len; i++) {
-                    if(!self.isFavorite(json[i].id)) { 
-                        self.favorites.push(json[i].id);
+                    if(!self.isFavorite(json[i].id_str)) { 
+                        self.favorites.push(json[i].id_str);
                     }
                 }
                 if(parse) {
