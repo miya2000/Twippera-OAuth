@@ -671,10 +671,10 @@ var Twippera = {
 
         for(var i = 0; i < len; i++) {
             if(this.check(json[i].id_str)) {
-                if(json[i].text.indexOf('@' + config.user) >= 0) {
-                    cl = 'tome';
-                } else if (json[i].user.screen_name == config.user) {
+                if (json[i].user.screen_name == config.user) {
                     cl = 'myself';
+                } else if(json[i].text.indexOf('@' + config.user) >= 0) {
+                    cl = 'tome';
                 } else {
                     cl = null;
                 }
