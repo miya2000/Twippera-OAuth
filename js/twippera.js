@@ -383,6 +383,13 @@ var Twippera = {
             Twippera.config.time);
     };
 
+    Twippera.clearAutoReflesh = function() {
+        if (this.TID) {
+            clearInterval(this.TID);
+            this.TID = null;
+        }
+    };
+
     Twippera.post = function(postType) {
 
         var client = Twippera.client;
@@ -399,6 +406,7 @@ var Twippera = {
 
 
         var status = "";
+        var in_reply_to_status_id = null;
         var type;
         $('reload').style.backgroundImage = 'url("images/loading.gif")';
 
@@ -414,6 +422,8 @@ var Twippera = {
             }
             self.postMsgs.unshift({msg: "", post : 0}, {msg: status, post: 1});
             self.PMindx = 0;
+            in_reply_to_status_id = Twippera.replies.in_reply_to_status_id;
+            Twippera.replies.clearInReplyTo();
         } else {
             type = "GET"
 //            type = "POST" //POST はほんとはだめ. 新しい機能試すときだけ
@@ -425,10 +435,19 @@ var Twippera = {
             }
         }
 
-        var agent = client.createAgent('statuses/' + postType);
+        var apiMethod = 'statuses/' + postType;
+        // friends_timeline is deprecated.
+        if (postType == 'friends_timeline') {
+            apiMethod= 'statuses/home_timeline';
+        }
+        var agent = client.createAgent(apiMethod);
         agent.format = 'json';
         agent.params = {};
+        if (postType == 'friends_timeline') {
+            agent.params.include_rts = '0';
+        }
         if (status) agent.params.status = status;
+        if (in_reply_to_status_id) agent.params.in_reply_to_status_id = in_reply_to_status_id;
         var xhr = agent.send();
         var timeout = new Timer(
             config.timeout, 
@@ -474,9 +493,12 @@ var Twippera = {
         };
         var req = agent.send();
         req.onload = function() {
-            $(id).parentNode.removeChild($(id));
+            removeNode($('_' + id));
             Twippera.cache.remove(id);
         };
+        if (id == Twippera.replies.in_reply_to_status_id) {
+            Twippera.replies.clearInReplyTo();
+        }
     }
     Twippera.display = function(to) {
         if(this.msgState == to) return;
@@ -525,7 +547,7 @@ var Twippera = {
     };
     Twippera.config.init = function() {
 
-        var time = parseInt($('reflesh').value) * 1000 * 60;
+        var time = parseInt($('reflesh').value, 10) * 1000 * 60;
         Widget.setValue(time, "time");
         if($('sar').checked) {
             Widget.setValue("true", "enableReflesh");
@@ -534,10 +556,10 @@ var Twippera = {
             clearInterval(this.TID);
         }
 
-        var timeout = parseInt($('timeout').value) * 1000;
+        var timeout = parseInt($('timeout').value, 10) * 1000;
         Widget.setValue(timeout, 'timeout');
 
-        var limit = parseInt($('cache').value);
+        var limit = parseInt($('cache').value, 10);
         Widget.setValue(limit, 'limit');
 
         var localeSel = $("locale");
@@ -580,6 +602,7 @@ var Twippera = {
                 Twippera.autoReflesh();
             } else {
                 $("sar").checked = false;
+                Twippera.clearAutoReflesh();
                 Twippera.post('friends_timeline');
             }
             $('timeout').value = this.timeout / 1000;
@@ -609,11 +632,11 @@ var Twippera = {
         this.issort = true;
         this.limit = Twippera.config.limit;
         this.template = [
-            '<li id="#{id}" class="#{cl}">',
+            '<li id="_#{id}" class="#{cl}">',
                 '<img src="#{img}" ',
                      'alt="#{usr}" ',
                      'style="width:16px;height:16px" ',
-                     'onclick="Twippera.replies.reply(\'#{usr}\')">',
+                     'onclick="Twippera.replies.reply(\'#{usr}\',\'#{id}\')">',
                 '<span class="user" ',
                       'onclick="widget.openURL(\'https://twitter.com/#{usr}\')">#{usr}',
                 '</span>',
@@ -634,7 +657,7 @@ var Twippera = {
                         'onclick="Twippera.favorite.toggle(this, \'#{id}\')">',
                     '</span>',
                 '</span>',
-            '</li>'].join('');;
+            '</li>'].join('');
     };
 
     Twippera.msg.prototype.update = function(txt) {
@@ -796,11 +819,68 @@ var Twippera = {
             }
         };
     }
-    Twippera.replies.reply = function(user) {
+    Twippera.replies.reply = function(user, in_reply_to_status_id) {
+        var user_signature = '@' + user + ' ';
         var status   = $('status');
         var msg = status.value;
-            status.value = '@' + user + ' ' + msg;
+        if (msg.lastIndexOf(user_signature, 0) < 0) {
+            status.value = user_signature + msg;
+        }
         setCaretPosition(status, status.value.length);
+        this.setInReplyTo(user_signature, in_reply_to_status_id);
+    };
+    
+    Twippera.replies.in_reply_to_user_signature = null;
+    Twippera.replies.in_reply_to_status_id = null;
+    Twippera.replies.in_reply_to_mode_style = null;
+    Twippera.replies.in_reply_to_observe_tid = null;
+    
+    Twippera.replies.setInReplyTo = function(user_signature, in_reply_to_status_id) {
+        this.in_reply_to_user_signature = user_signature;
+        this.in_reply_to_status_id = in_reply_to_status_id;
+        if (this.in_reply_to_mode_style == null) {
+            this.in_reply_to_mode_style = addStyle('');
+        }
+        this.in_reply_to_mode_style.innerText = 
+            '#_' + escapeSelector(in_reply_to_status_id) + ' { outline: rgb(255,220,100) solid 2px } ' +
+            '#status { border: rgb(255,220,100) solid 2px }';
+        if (this.in_reply_to_observe_tid == null) {
+            var that = this;
+            this.in_reply_to_observe_tid = setInterval(function() {
+                if ($('status').value.lastIndexOf(that.in_reply_to_user_signature, 0) < 0) {
+                    that.clearInReplyTo();
+                }
+            }, 150);
+        }
+        $('status').addEventListener('keypress', Twippera.replies.handleEventInReplyTo, false);
+        $('status').title = 'ssss';
+    };
+    Twippera.replies.clearInReplyTo = function() {
+        this.in_reply_to_userin_reply_to_user_signature = null;
+        this.in_reply_to_status_id = null;
+        if (this.in_reply_to_mode_style != null) {
+            removeNode(this.in_reply_to_mode_style);
+            this.in_reply_to_mode_style = null;
+        }
+        if (this.in_reply_to_observe_tid != null) {
+            clearInterval(this.in_reply_to_observe_tid);
+            this.in_reply_to_observe_tid = null;
+        }
+        $('status').removeEventListener('keypress', Twippera.replies.handleEventInReplyTo, false);
+        $('status').title = '';
+    };
+    // This is a function (not a method).
+    Twippera.replies.handleEventInReplyTo = function(e) {
+        var that = Twippera.replies;
+        // clear in_reply_to if BackSpace pressed and status equals signature and no selection.
+        if (e.type == 'keypress' && e.keyCode == 8) {
+            var status = $('status');
+            var signature = that.in_reply_to_user_signature;
+            if (status.value == signature && status.selectionStart == signature.length) {
+                that.clearInReplyTo();
+                e.preventDefault();
+            }
+        }
     };
 
     Twippera.favorite = new Twippera.msg; 
@@ -823,7 +903,7 @@ var Twippera = {
 
         var agent = client.createAgent('favorites');
         agent.format = 'json';
-        agent.asynch = false;
+        agent.async = false;
         var xhr = agent.send();
         xhr.onload = function() {
             if (client.handleResponseCode(xhr, agent)) {
@@ -844,7 +924,7 @@ var Twippera = {
                 log(agent.buildURL(), xhr.status, xhr.statusText);
             }
         };
-        xhr.onload(); // agent.asynch = false;
+        xhr.onload(); // agent.async = false;
     };
     Twippera.favorite.isFavorite = function(id) {
         return this.favorites.contains(id);
@@ -898,7 +978,7 @@ var Twippera = {
             self.url,
             function(xhr) {
                 var t = xhr.responseText.split(':')
-                var release = parseInt(t[0]);
+                var release = parseInt(t[0], 10);
                 var ver = t[1];
                 if(Twippera.release < release) {
                     Twippera.showPopup(

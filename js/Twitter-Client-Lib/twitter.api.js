@@ -61,7 +61,11 @@ var API = [
         url: 'http://api.twitter.com/1/statuses/public_timeline.format',
         formats: [ 'xml', 'json', 'rss', 'atom' ],
         method: 'GET',
-        auth: false
+        auth: false,
+        params: {
+            'trim_user': null,
+            'include_entities': null
+        }
     },
     {
         name: 'statuses/home_timeline',
@@ -71,10 +75,15 @@ var API = [
         method: 'GET',
         auth: true,
         params: {
+            'count': null,
             'since_id': null,
             'max_id': null,
-            'count': null,
-            'page': null
+            'page': null,
+            'trim_user': null,
+            'include_rts' : null,
+            'include_entities': null,
+            'exclude_replies' : null,
+            'contributor_details' : null
         },
         detectError: function() {
             this.error = null;
@@ -85,6 +94,8 @@ var API = [
     },
     {
         name: 'statuses/friends_timeline',
+        deprecated: 'true',
+        replacedTo: 'statuses/home_timeline',
         description: 'Returns the 20 most recent statuses posted by the authenticating user and that user\'s friends. ',
         url: 'http://api.twitter.com/1/statuses/friends_timeline.format',
         formats: [ 'xml', 'json', 'rss', 'atom' ],
@@ -114,9 +125,14 @@ var API = [
             'user_id': null,
             'screen_name': null,
             'since_id': null,
-            'max_id': null,
             'count': null,
-            'page': null
+            'max_id': null,
+            'page': null,
+            'trim_user': null,
+            'include_rts' : null,
+            'include_entities': null,
+            'exclude_replies' : null,
+            'contributor_details' : null
         }
     },
     {
@@ -127,10 +143,14 @@ var API = [
         method: 'GET',
         auth: true,
         params: {
+            'count': null,
             'since_id': null,
             'max_id': null,
-            'count': null,
-            'page': null
+            'page': null,
+            'trim_user': null,
+            'include_rts' : null,
+            'include_entities': null,
+            'contributor_details' : null
         }
     },
     {
@@ -141,7 +161,9 @@ var API = [
         method: 'GET',
         auth: true,
         params: {
-            'id': null
+            'id': null,
+            'trim_user': null,
+            'include_entities': null
         },
         detectError: function() {
             this.error = null;
@@ -161,7 +183,11 @@ var API = [
             'status': null,
             'in_reply_to_status_id': null,
             'lat': null,
-            'long': null
+            'long': null,
+            'place_id' : null,
+            'display_coordinates' : null,
+            'trim_user' : null,
+            'include_entities' : null
         },
         detectError: function() {
             this.error = null;
@@ -181,7 +207,9 @@ var API = [
         method: 'DELETE',
         auth: true,
         params: {
-            'id': null
+            'id': null,
+            'include_entities': null,
+            'trim_user': null
         },
         detectError: function() {
             this.error = null;

@@ -271,6 +271,25 @@ function removeClass(el, className) {
         el.className = newClassName;
     }
 }
+function addStyle(styleStr, doc) {
+    var document = doc || window.document;
+    var style = document.createElement('style');
+    style.type = 'text/css';
+    style.style.display = 'none';
+    style.innerHTML = styleStr;
+    document.body.appendChild(style);
+    return style;
+}
+function removeNode(ele) {
+    if (ele && ele.parentNode) {
+        ele.parentNode.removeChild(ele);
+    }
+}
+
+// @see http://std.name/aloe/2010/02/22/23
+function escapeSelector(str) {
+    return str.replace(new RegExp("(#|;|&amp;|,|\\.|\\+|\\*|~|'|:|\"|!|\\^|\\$|\\[|\\]|\\(|\\)|=|&gt;|\\||\\/|\\\\)","g"),"\\$1");
+}
 
 function Timer(msec, func) {
     var tid = setTimeout(func, msec);

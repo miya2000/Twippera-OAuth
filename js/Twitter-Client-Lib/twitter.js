@@ -182,7 +182,7 @@ function TwitterAPIAgent(client, api) {
             data = null;
         }
         var x = client.createHttpRequest();
-        x.open(message.method, message.action, self.asynch != null ? self.asynch : true);
+        x.open(message.method, message.action, self.async != null ? self.async : true);
         if (/^post$/i.test(message.method)) {
             x.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded; charset=UTF-8');
         }
@@ -190,7 +190,7 @@ function TwitterAPIAgent(client, api) {
             x.setRequestHeader('User-Agent', client.info.userAgent);
         }
         if (self.auth != null ? self.auth : api.auth) {
-            if (self.params ) OAuth.setParameters(message, params);
+            if (data        ) OAuth.setParameters(message, params);
             if (self.oparams) OAuth.setParameters(message, self.oparams);
             OAuth.completeRequest(message, client.accessor);
             x.setRequestHeader('Authorization', OAuth.getAuthorizationHeader(client.info.realm || client.info.name, message.parameters));
