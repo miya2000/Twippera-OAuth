@@ -445,6 +445,7 @@ var Twippera = {
         agent.params = {};
         if (postType == 'friends_timeline') {
             agent.params.include_rts = '0';
+            agent.params.include_entities = '1';
         }
         if (status) agent.params.status = status;
         if (in_reply_to_status_id) agent.params.in_reply_to_status_id = in_reply_to_status_id;
@@ -686,7 +687,8 @@ var Twippera = {
                     time   : json[i].created_at,
                     class  : cl,
                     prot   : json[i].user.protected,
-                    cached : 0
+                    cached : 0,
+                    entities : json[i].entities
                 });
             }
         }
@@ -737,7 +739,7 @@ var Twippera = {
             usr = msgs[i];
             var tmpMsg;
             if(!usr.cached) {
-                tmpMsg = Tools.createHTML(usr.msg);
+                tmpMsg = Tools.createHTML(usr.msg, usr.entities);
                 usr.msg = tmpMsg;
                 usr.cached = 1;
             } else {
@@ -807,6 +809,9 @@ var Twippera = {
 
         var agent = client.createAgent('statuses/mentions');
         agent.format = 'json';
+        agent.params = {
+            include_entities : '1'
+        };
         var xhr = agent.send();
         xhr.onload = function() {
             if (client.handleResponseCode(xhr, agent)) {

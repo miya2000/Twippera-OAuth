@@ -120,7 +120,28 @@ var Tools = {};
             return (hours == 1) ? hours + langs.hrago : hours + langs.hrsago;
         }
     };
-    Tools.createHTML = function(text) {
+    Tools.createHTML = function(text, entities) {
+        
+        // @see https://github.com/basyura/TweetVim/pull/12
+        // @see https://dev.twitter.com/docs/tweet-entities
+        function findUrlEntity(url) {
+            if (entities) {
+                var urls = entities.urls;
+                for (var i = 0, len = urls.length; i < len; i++) {
+                    if (url.indexOf(urls[i].url) == 0) { // starts with.
+                        return urls[i];
+                    }
+                }
+                var urls = entities.media || [];
+                for (var i = 0, len = urls.length; i < len; i++) {
+                    if (url.indexOf(urls[i].url) == 0) {
+                        return urls[i];
+                    }
+                }
+                return null;
+            }
+        }
+        
         var self = this;
         var text = text.replace(/&amp;/g, "&");
         text = text.replace(
@@ -128,20 +149,37 @@ var Tools = {};
 //            /(https?|ftp)(:\/\/[^\s\(\)]+)/g,
             /((https?|s?ftp|ssh)\:\/\/[^"\s\<\>]*[^.,;'">\:\s\<\>\)\]\!])/g, // from http://twitter.com/javascripts/blogger.js
             function(url){
+                var tail = "";
+                var entity = findUrlEntity(url);
+                if (entity) {
+                    if (url != entity.url) {
+                        tail = url.substring(entity.url.length); // starts with.
+                    }
+                    url = entity.expanded_url;
+                }
                 if(url.indexOf('http://tinyurl.com/') == 0
                     || url.indexOf('http://z.la/') == 0
                     || url.indexOf('http://ff.im/') == 0
                     || url.indexOf('http://bit.ly/') == 0
+                    || url.indexOf('http://ow.ly/') == 0
                     || url.indexOf('http://t.co/') == 0
                 ) {
-                    url = DecodeURI(self.resolveTinyUrl(url) || url);
+                    url = self.resolveTinyUrl(url);
                 }
-                return '<a href="' + url + '">' + url +'</a>';
+                return '<a href="' + escapeHTML(url) + '">' + escapeHTML(DecodeURI(url)) +'</a>' + tail;
             }
         );
-        return text.replace(/\B@([_a-z0-9]+)/ig, function(reply) {
+        text = text.replace(/\B@([_a-z0-9]+)/ig, function(reply) {
             return reply.charAt(0) + '<a href="http://twitter.com/' + reply.substring(1) + '">' + reply.substring(1) + '</a>';
         });
+        
+        // hashtag
+        text = text.replace(/(^|\s)#([^\s@!\"#$%&\'()*+,-./:;<=>?\[\\\]^{|}]+)/g, function($0, $1, $tag) {
+            if (/^_*$/.test($tag)) return $0;
+            return $1 + '<a href="' + self.createHashtagUrl($tag) + '">#' + $tag + '</a>';
+        });
+        
+        return text;
     };
     // Tinyurl 展開: 1つに付き about 600ms
     Tools.resolveTinyUrl = function(url) {
@@ -150,11 +188,14 @@ var Tools = {};
             xhr.open('HEAD', url, false);
             xhr.onreadystatechange = function() {
                 if(xhr.readyState == 4) {
-                    exURL = escape(xhr.getResponseHeader('Location'));
+                    exURL = xhr.getResponseHeader('Location');
                 }
             }
             xhr.send(null);
         return exURL || url;
+    };
+    Tools.createHashtagUrl = function(tag) {
+        return 'https://twitter.com/search?q=' + encodeURIComponent('#' + tag) + '&src=hash';
     };
 
 //Widget
@@ -290,6 +331,22 @@ function removeNode(ele) {
 function escapeSelector(str) {
     return str.replace(new RegExp("(#|;|&amp;|,|\\.|\\+|\\*|~|'|:|\"|!|\\^|\\$|\\[|\\]|\\(|\\)|=|&gt;|\\||\\/|\\\\)","g"),"\\$1");
 }
+
+// @see http://d.hatena.ne.jp/f99aq/20060714
+var escapeHTML = (function() {
+    var escapeRules = {
+        "&": "&amp;",
+        '"': "&quot;",
+        "<": "&lt;",
+        ">": "&gt;",
+        "'": '&#039;'
+    };
+    return function escapeHTML(s) {
+        return s.replace(/[&\"<>\']/g, function(c) {
+            return escapeRules[c];
+        });
+    };
+})();
 
 function Timer(msec, func) {
     var tid = setTimeout(func, msec);
