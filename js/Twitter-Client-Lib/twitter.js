@@ -142,6 +142,7 @@ function TwitterAPIAgent(client, api) {
     
     this.detectError = detectError;
     this.buildURL = buildURL;
+    this.urlIncludedParams = [];
     this.send = send;
     
     var self = this;
@@ -153,8 +154,9 @@ function TwitterAPIAgent(client, api) {
         if (api.formats) {
             url = url.replace(/\.format$/, '.' + (self.format || api.formats[0]));
         }
-        if (api.params && ('id' in api.params) && self.params && self.params.id) {
-            url = url.replace(/\/id\.(\w+)$/, '/' + self.params.id + '.$1');
+        if (url.indexOf(':id.') >= 0 && api.params && ('id' in api.params) && self.params && self.params.id) {
+            url = url.replace(/:id\./g, self.params.id + '.');
+            self.urlIncludedParams.push('id');
         }
         return url;
     }
@@ -173,7 +175,11 @@ function TwitterAPIAgent(client, api) {
                 }
             }
         }
-        if (params.id) delete params.id; // @see #buildURL
+        
+        // @see #buildURL
+        for (var k in self.urlIncludedParams) {
+            if (params[k]) delete params[k];
+        }
         
         var headers = self.headers || {};
         var data = self.params ? OAuth.formEncode(params) : null;

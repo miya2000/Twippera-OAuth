@@ -177,7 +177,8 @@ var Twippera = {
         var pin = trim($('oauth_pin').value);
         authClient.verifyClient(pin, function() {
             authClient.verifyCredentials(function(xhr) {
-                var user = xhr.responseXML.getElementsByTagName('screen_name')[0].textContent;
+                var json = JSON.parse(xhr.responseText);
+                var user = json.screen_name;
                 Twippera.config.user = user;
                 Widget.setValue(user, 'user');
                 Widget.setValue(authClient.accessor.consumerKey, 'oauth_consumer_key');
@@ -664,7 +665,7 @@ var Twippera = {
     Twippera.msg.prototype.update = function(txt) {
         var config = Twippera.config;
 
-        var json = eval(txt);
+        var json = JSON.parse(txt);
         // [{"id":,"created_at":,"text":,"user":{"name":,"profile_image_url":,"description":,"location":,"url":,"id":,"protected":,"screen_name":}},.....]
         var cl = null;
         var len = json.length;
@@ -807,7 +808,7 @@ var Twippera = {
 
         var self = this;
 
-        var agent = client.createAgent('statuses/mentions');
+        var agent = client.createAgent('statuses/mentions_timeline');
         agent.format = 'json';
         agent.params = {
             include_entities : '1'
@@ -906,14 +907,14 @@ var Twippera = {
 
         var self = this;
 
-        var agent = client.createAgent('favorites');
+        var agent = client.createAgent('favorites/list');
         agent.format = 'json';
         agent.async = false;
         var xhr = agent.send();
         xhr.onload = function() {
             if (client.handleResponseCode(xhr, agent)) {
                 var res = xhr.responseText;
-                var json = eval(res);
+                var json = JSON.parse(res);
                 for(var i = 0, len = json.length; i < len; i++) {
                     if(!self.isFavorite(json[i].id_str)) { 
                         self.favorites.push(json[i].id_str);

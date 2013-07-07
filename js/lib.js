@@ -1,6 +1,5 @@
-// http://jsgt.org/mt/archives/01/001175.html
-function $(el) {
-    return $[el] || ($[el] = (document.getElementById(el) || el));
+function $(id) {
+    return document.getElementById(id) || id;
 }
 
 // xpath

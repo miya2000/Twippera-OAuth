@@ -56,69 +56,24 @@ var API = [
     },
     //Core API.
     {
-        name: 'statuses/public_timeline',
-        description: 'Returns the 20 most recent statuses from non-protected users who have set a custom user icon. ',
-        url: 'http://api.twitter.com/1/statuses/public_timeline.format',
-        formats: [ 'xml', 'json', 'rss', 'atom' ],
+        name: 'statuses/mentions_timeline',
+        description: 'Returns the 20 most recent mentions (tweets containing a users\'s @screen_name) for the authenticating user. ',
+        url: 'https://api.twitter.com/1.1/statuses/mentions_timeline.json',
         method: 'GET',
-        auth: false,
+        auth: true,
         params: {
+            'count': null,
+            'since_id': null,
+            'max_id': null,
             'trim_user': null,
+            'contributor_details': null,
             'include_entities': null
         }
     },
     {
-        name: 'statuses/home_timeline',
-        description: 'Returns the 20 most recent statuses, including retweets, posted by the authenticating user and that user\'s friends. ',
-        url: 'http://api.twitter.com/1/statuses/home_timeline.format',
-        formats: [ 'xml', 'json', 'atom' ],
-        method: 'GET',
-        auth: true,
-        params: {
-            'count': null,
-            'since_id': null,
-            'max_id': null,
-            'page': null,
-            'trim_user': null,
-            'include_rts' : null,
-            'include_entities': null,
-            'exclude_replies' : null,
-            'contributor_details' : null
-        },
-        detectError: function() {
-            this.error = null;
-            if (this.params.count && Number(this.params.count) > 200) {
-                return this.error = { 'count': { 'type': 'limit over', 'value': 200 } };
-            }
-        }
-    },
-    {
-        name: 'statuses/friends_timeline',
-        deprecated: 'true',
-        replacedTo: 'statuses/home_timeline',
-        description: 'Returns the 20 most recent statuses posted by the authenticating user and that user\'s friends. ',
-        url: 'http://api.twitter.com/1/statuses/friends_timeline.format',
-        formats: [ 'xml', 'json', 'rss', 'atom' ],
-        method: 'GET',
-        auth: true,
-        params: {
-            'since_id': null,
-            'max_id': null,
-            'count': null,
-            'page': null
-        },
-        detectError: function() {
-            this.error = null;
-            if (this.params.count && Number(this.params.count) > 200) {
-                return this.error = { 'count': { 'type': 'limit over', 'value': 200 } };
-            }
-        }
-    },
-    {
         name: 'statuses/user_timeline',
-        description: 'Returns the 20 most recent statuses posted from the authenticating user. It\'s also possible to request another user\'s timeline via the id parameter. ',
-        url: 'http://api.twitter.com/1/statuses/user_timeline.format',
-        formats: [ 'xml', 'json', 'rss', 'atom' ],
+        description: 'Returns a collection of the most recent Tweets posted by the user indicated by the screen_name or user_id parameters. ',
+        url: 'https://api.twitter.com/1.1/statuses/user_timeline.json',
         method: 'GET',
         auth: true, // if requesting a protected user's timeline.
         params: {
@@ -127,19 +82,16 @@ var API = [
             'since_id': null,
             'count': null,
             'max_id': null,
-            'page': null,
             'trim_user': null,
-            'include_rts' : null,
-            'include_entities': null,
             'exclude_replies' : null,
-            'contributor_details' : null
+            'contributor_details' : null,
+            'include_rts' : null
         }
     },
     {
-        name: 'statuses/mentions',
-        description: 'Returns the 20 most recent mentions (status containing @username) for the authenticating user. ',
-        url: 'http://api.twitter.com/1/statuses/mentions.format',
-        formats: [ 'xml', 'json', 'rss', 'atom' ],
+        name: 'statuses/home_timeline',
+        description: 'Returns a collection of the most recent Tweets and retweets posted by the authenticating user and the users they follow. The home timeline is central to how most users interact with the Twitter service. ',
+        url: 'https://api.twitter.com/1.1/statuses/home_timeline.json',
         method: 'GET',
         auth: true,
         params: {
@@ -148,21 +100,60 @@ var API = [
             'max_id': null,
             'page': null,
             'trim_user': null,
-            'include_rts' : null,
+            'exclude_replies' : null,
+            'contributor_details' : null,
+            'include_entities': null
+        },
+        detectError: function() {
+            this.error = null;
+            if (this.params.count && Number(this.params.count) > 200) {
+                return this.error = { 'count': { 'type': 'limit over', 'value': 200 } };
+            }
+        }
+    },
+    {
+        name: 'statuses/retweets_of_me',
+        description: 'Returns the most recent tweets authored by the authenticating user that have been retweeted by others. This timeline is a subset of the user\'s GET statuses/user_timeline. ',
+        url: 'https://api.twitter.com/1.1/statuses/retweets_of_me.json',
+        method: 'GET',
+        auth: true,
+        params: {
+            'count': null,
+            'since_id': null,
+            'max_id': null,
+            'trim_user': null,
             'include_entities': null,
-            'contributor_details' : null
+            'include_user_entities': null
+        }
+    },
+    {
+        name: 'statuses/retweets',
+        description: 'Returns up to 100 of the first retweets of a given tweet. ',
+        url: 'https://api.twitter.com/1.1/statuses/retweets/:id.json',
+        method: 'GET',
+        auth: true,
+        params: {
+            'id': null,
+            'count': null,
+            'trim_user': null
+        },
+        detectError: function() {
+            this.error = null;
+            if (!this.params.id) {
+                return this.error = { 'id': { 'type': 'required' } };
+            }
         }
     },
     {
         name: 'statuses/show',
-        description: 'Returns a single status, specified by the id parameter below. ',
-        url: 'http://api.twitter.com/1/statuses/show/id.format',
-        formats: [ 'xml', 'json' ],
+        description: 'Returns a single Tweet, specified by the id parameter. The Tweet\'s author will also be embedded within the tweet. ',
+        url: 'https://api.twitter.com/1.1/statuses/show.json',
         method: 'GET',
         auth: true,
         params: {
             'id': null,
             'trim_user': null,
+            'include_my_retweet': null,
             'include_entities': null
         },
         detectError: function() {
@@ -173,10 +164,26 @@ var API = [
         }
     },
     {
+        name: 'statuses/destroy',
+        description: 'Destroys the status specified by the required ID parameter. The authenticating user must be the author of the specified status. Returns the destroyed status if successful. ',
+        url: 'https://api.twitter.com/1.1/statuses/destroy/:id.json',
+        method: 'POST',
+        auth: true,
+        params: {
+            'id': null,
+            'trim_user': null
+        },
+        detectError: function() {
+            this.error = null;
+            if (!this.params.id) {
+                return this.error = { 'id': { 'type': 'required' } };
+            }
+        }
+    },
+    {
         name: 'statuses/update',
-        description: 'Updates the authenticating user\'s status. ',
-        url: 'http://api.twitter.com/1/statuses/update.format',
-        formats: [ 'xml', 'json' ],
+        description: 'Updates the authenticating user\'s current status, also known as tweeting. To upload an image to accompany the tweet, use POST statuses/update_with_media.',
+        url: 'https://api.twitter.com/1.1/statuses/update.json',
         method: 'POST',
         auth: true,
         params: {
@@ -186,8 +193,7 @@ var API = [
             'long': null,
             'place_id' : null,
             'display_coordinates' : null,
-            'trim_user' : null,
-            'include_entities' : null
+            'trim_user' : null
         },
         detectError: function() {
             this.error = null;
@@ -200,15 +206,13 @@ var API = [
         }
     },
     {
-        name: 'statuses/destroy',
-        description: 'Destroys the status specified by the required ID parameter. ',
-        url: 'http://api.twitter.com/1/statuses/destroy/id.format',
-        formats: [ 'xml', 'json' ],
-        method: 'DELETE',
+        name: 'statuses/retweet',
+        description: 'Retweets a tweet. Returns the original tweet with retweet details embedded. ',
+        url: 'https://api.twitter.com/1.1/statuses/retweet/:id.json',
+        method: 'POST',
         auth: true,
         params: {
             'id': null,
-            'include_entities': null,
             'trim_user': null
         },
         detectError: function() {
@@ -219,20 +223,34 @@ var API = [
         }
     },
     {
-        name: 'account/verify_credentials',
-        description: 'Returns an HTTP 200 OK response code and a representation of the requesting user if authentication was successful; returns a 401 status code and an error message if not. ',
-        url: 'http://api.twitter.com/1/account/verify_credentials.format',
-        formats: [ 'xml', 'json' ],
-        method: 'GET', // I want to change HEAD but API returns 401...
-        auth: true
+        name: 'statuses/retweeters/ids',
+        description: 'Returns a collection of up to 100 user IDs belonging to users who have retweeted the tweet specified by the id parameter. ',
+        url: 'https://api.twitter.com/1.1/statuses/retweeters/ids.json',
+        method: 'GET',
+        auth: true,
+        params: {
+            'id': null,
+            'cursor': null,
+            'count': null,
+            'stringify_ids': null
+        },
+        detectError: function() {
+            this.error = null;
+            if (!this.params.id) {
+                return this.error = { 'id': { 'type': 'required' } };
+            }
+        }
     },
     {
-        name: 'account/rate_limit_status',
-        description: 'Returns the remaining number of API requests available to the requesting user before the API limit is reached for the current hour. ',
-        url: 'http://api.twitter.com/1/account/rate_limit_status.format',
-        formats: [ 'xml', 'json' ],
-        method: 'GET',
-        auth: true // false for IP limit.
+        name: 'account/verify_credentials',
+        description: 'Returns an HTTP 200 OK response code and a representation of the requesting user if authentication was successful; returns a 401 status code and an error message if not. Use this method to test if supplied user credentials are valid. ',
+        url: 'https://api.twitter.com/1.1/account/verify_credentials.json',
+        method: 'GET', // I want to change HEAD but API returns 401...
+        auth: true,
+        params: {
+            'include_entities': null,
+            'skip_status': null
+        }
     }
 ];
 

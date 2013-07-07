@@ -25,26 +25,29 @@ if (typeof Twitter.API == 'undefined') Twitter.API = {};
 var API = [
     //Favorite Methods.
     {
-        name: 'favorites',
-        description: 'Returns the 20 most recent favorite statuses for the authenticating user or user specified by the ID parameter in the requested format. ',
-        url: 'http://api.twitter.com/1/favorites.format',
-        formats: [ 'xml', 'json', 'rss', 'atom' ],
+        name: 'favorites/list',
+        description: 'Returns the 20 most recent Tweets favorited by the authenticating or specified user. ',
+        url: 'https://api.twitter.com/1.1/favorites/list.json',
         method: 'GET',
         auth: true,
         params: {
-            'page': null
+            'user_id': null,
+            'screen_name': null,
+            'count': null,
+            'since_id': null,
+            'max_id': null,
+            'include_entities': null
         }
     },
     {
-        name: 'favorites/show',
-        description: 'Returns the 20 most recent favorite statuses for the authenticating user or user specified by the ID parameter in the requested format. ',
-        url: 'http://api.twitter.com/1/favorites/id.json',
-        formats: [ 'xml', 'json', 'rss', 'atom' ],
-        method: 'GET',
+        name: 'favorites/destroy',
+        description: 'Un-favorites the status specified in the ID parameter as the authenticating user. Returns the un-favorited status in the requested format when successful. ',
+        url: 'https://api.twitter.com/1.1/favorites/destroy.json',
+        method: 'POST',
         auth: true,
         params: {
             'id': null,
-            'page': null
+            'include_entities': null
         },
         detectError: function() {
             this.error = null;
@@ -56,29 +59,12 @@ var API = [
     {
         name: 'favorites/create',
         description: 'Favorites the status specified in the ID parameter as the authenticating user. Returns the favorite status when successful. ',
-        url: 'http://api.twitter.com/1/favorites/create/id.format',
-        formats: [ 'xml', 'json' ],
+        url: 'https://api.twitter.com/1.1/favorites/create.json',
         method: 'POST',
         auth: true,
         params: {
-            'id': null
-        },
-        detectError: function() {
-            this.error = null;
-            if (!this.params.id) {
-                return this.error = { 'id': { 'type': 'required' } };
-            }
-        }
-    },
-    {
-        name: 'favorites/destroy',
-        description: 'Un-favorites the status specified in the ID parameter as the authenticating user. Returns the un-favorited status in the requested format when successful. ',
-        url: 'http://api.twitter.com/1/favorites/destroy/id.format',
-        formats: [ 'xml', 'json' ],
-        method: 'DELETE', // 'POST' allowed.
-        auth: true,
-        params: {
-            'id': null
+            'id': null,
+            'include_entities': null
         },
         detectError: function() {
             this.error = null;
